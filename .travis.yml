@@ -18,14 +18,27 @@ addons:
     packages:
       - cmake
       - lcov
+      - git
+      - graphviz
+      - libatlas-base-dev
+      - libboost-iostreams-dev
+      - libboost-program-options-dev
+      - libboost-serialization-dev
+      - libboost-system-dev
+      - libcgal-dev
+      - libcgal-qt5-dev
+      - libglu1-mesa-dev
+      - libjpeg-dev
+      - libopencv-dev
       - libpng-dev
-      - libjpeg8-dev
-      - libtiff4-dev
-      - libxxf86vm1
-      - libxxf86vm-dev
-      - x11proto-xf86vidmode-dev
+      - libsuitesparse-dev
+      - libtiff-dev
+      - libxi-dev
       - libxrandr-dev
-      - g++-4.8
+      - libxxf86vm-dev
+      - libxxf86vm1
+      - mercurial
+      - qt5-default
 
 env:
   global:
@@ -38,13 +51,41 @@ before_install:
 
 before_script:
   - export CXX="g++-4.8"
-  # Create build folder
-  - mkdir $OPENMVG_BUILD
-  - cd $OPENMVG_BUILD
-  # Classic release build
-  - cmake -DCMAKE_BUILD_TYPE=release -DOpenMVG_BUILD_TESTS=ON -DOpenMVG_BUILD_EXAMPLES=ON . $OPENMVG_SOURCE
-  # Build for code coverage evaluation
-  #- cmake -DOpenMVG_BUILD_COVERAGE=ON -DOpenMVG_BUILD_TESTS=ON -DOpenMVG_BUILD_EXAMPLES=ON . $OPENMVG_SOURCE
+#VCGLib (Required)
+  - git clone https://github.com/cdcseacave/VCG.git vcglib
+
+#Eigen (Required)
+  - hg clone https://bitbucket.org/eigen/eigen#3.2
+  - mkdir eigen_build && cd eigen_build
+  - cmake . ../eigen
+  - make && sudo make install
+  - cd ..
+
+#Ceres (Required)
+  - git clone https://ceres-solver.googlesource.com/ceres-solver ceres-solver
+  - mkdir ceres_build && cd ceres_build/
+  - cmake . ../ceres-solver/ -DMINIGLOG=ON -DBUILD_TESTING=OFF -DBUILD_EXAMPLES=OFF
+  - make -j2 && sudo make install
+  - cd ..
+
+#CMVS / PMVS (Optional)
+  - git clone https://github.com/open-anatomy/CMVS-PMVS.git
+  - mkdir CMVS-PMVS_build && cd CMVS-PMVS_build
+  - cmake ../CMVS-PMVS/program
+  - make && sudo make install
+  - cd ..
+
+#OpenMVS (Recommended)
+  - git clone https://github.com/open-anatomy/openMVS.git openMVS
+  - mkdir openMVS_build && cd openMVS_build
+  - cmake . ../openMVS -DCMAKE_BUILD_TYPE=Release -DVCG_DIR="~/vcglib"
+  - make -j2 && sudo make install
+  - cd ..
+
+#OpenMVG + GUI (Required)
+  - git clone --recursive https://github.com/open-anatomy/SfM_gui_for_openMVG.git openMVG
+  - mkdir $OPENMVG_BUILD && cd $OPENMVG_BUILD
+  - cmake -DCMAKE_BUILD_TYPE=RELEASE . $OPENMVG_SRC -DCMAKE_INSTALL_PREFIX=$OPENMVG_BUILD/openMVG_install -DBUILD_SFM_GUI=ON -DOPENMVG_PMVS_PATH=$HOME/CMVS-PMVS_build -DBUILD_GUI_PREVIEW=OFF
 
 script:
 # limit GCC builds to a reduced number of thread for the virtual machine
